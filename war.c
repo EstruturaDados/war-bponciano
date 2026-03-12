@@ -5,137 +5,223 @@
 
 #define TOTAL_TERRITORIOS 5
 
-// Estruturas de Dados
+// estrutura do território
 typedef struct {
     char nome[50];
-    char corExercito[20];
-    int numeroTropas;
+    char exercito[20];
+    int tropas;
 } Territorio;
 
-typedef enum { DESTRUIR_VERDE, CONQUISTAR_3 } TipoMissao;
+// tipos de missão possíveis
+typedef enum {
+    DESTRUIR_VERDE,
+    CONQUISTAR_3
+} TipoMissao;
 
+// estrutura da missão
 typedef struct {
     TipoMissao tipo;
     int concluida;
 } Missao;
 
-// --- Protótipos das Funções (Modularização) ---
-void inicializarMapa(Territorio *mapa);
-void sortearMissao(Missao *m);
-void exibirMapa(const Territorio *mapa); // const: garante que a função não altere o mapa
-void realizarAtaque(Territorio *ataca, Territorio *defende);
-int verificarMissao(const Missao *m, const Territorio *mapa);
-void limparBuffer();
+
+// funções
+void iniciarMapa(Territorio *mapa);
+void gerarMissao(Missao *m);
+void mostrarMapa(Territorio *mapa);
+void atacar(Territorio *a, Territorio *d);
+int checarMissao(Missao *m, Territorio *mapa);
+
 
 int main() {
+
     srand(time(NULL));
-    
-    // Alocação Dinâmica
-    Territorio *mapa = (Territorio *)calloc(TOTAL_TERRITORIOS, sizeof(Territorio));
+
+    // alocação dinâmica do mapa
+    Territorio *mapa = calloc(TOTAL_TERRITORIOS, sizeof(Territorio));
+
+    if(mapa == NULL){
+        printf("Erro de memoria\n");
+        return 1;
+    }
+
     Missao minhaMissao;
 
-    if (!mapa) return 1;
+    iniciarMapa(mapa);
+    gerarMissao(&minhaMissao);
 
-    inicializarMapa(mapa);
-    sortearMissao(&minhaMissao);
+    int op = -1;
 
-    int opcao = -1;
-    while (opcao != 0) {
-        exibirMapa(mapa);
-        printf("\n--- MENU MESTRE ---\n");
-        printf("1. Atacar\n");
-        printf("2. Verificar Missao\n");
-        printf("0. Sair\n");
+    while(op != 0){
+
+        mostrarMapa(mapa);
+
+        printf("\n====== MENU ======\n");
+        printf("1 - Atacar\n");
+        printf("2 - Verificar missão\n");
+        printf("0 - Sair\n");
+
         printf("Escolha: ");
-        scanf("%d", &opcao);
+        scanf("%d",&op);
 
-        if (opcao == 1) {
-            int a, d;
-            printf("ID Atacante (1-5): "); scanf("%d", &a);
-            printf("ID Defensor (1-5): "); scanf("%d", &d);
-            
-            if (a >= 1 && a <= 5 && d >= 1 && d <= 5 && a != d) {
-                realizarAtaque(&mapa[a-1], &mapa[d-1]);
+        if(op == 1){
+
+            int atk, def;
+
+            printf("Territorio atacante (1-5): ");
+            scanf("%d",&atk);
+
+            printf("Territorio defensor (1-5): ");
+            scanf("%d",&def);
+
+            if(atk >=1 && atk <=5 && def >=1 && def <=5 && atk != def){
+
+                atacar(&mapa[atk-1], &mapa[def-1]);
+
+            }else{
+                printf("IDs invalidos\n");
             }
-        } 
-        else if (opcao == 2) {
-            if (verificarMissao(&minhaMissao, mapa)) {
-                printf("\n==================================\n");
-                printf("  PARABENS! MISSAO CUMPRIDA!  \n");
-                printf("==================================\n");
-                opcao = 0; // Finaliza o jogo após vitória
-            } else {
-                printf("\n[STATUS] Missao ainda em andamento. Continue lutando!\n");
+        }
+
+        else if(op == 2){
+
+            if(checarMissao(&minhaMissao, mapa)){
+
+                printf("\n=====================\n");
+                printf("MISSAO CONCLUIDA!\n");
+                printf("=====================\n");
+
+                op = 0;
+
+            }else{
+                printf("\nMissao ainda nao concluida\n");
             }
         }
     }
 
     free(mapa);
+
     return 0;
 }
 
-// --- Implementação dos Módulos ---
 
-void inicializarMapa(Territorio *mapa) {
-    char *nomes[] = {"Brasil", "Egito", "China", "Russia", "Canada"};
-    char *cores[] = {"Verde", "Azul", "Verde", "Vermelho", "Azul"};
-    
-    for (int i = 0; i < TOTAL_TERRITORIOS; i++) {
+
+// inicia os territórios
+void iniciarMapa(Territorio *mapa){
+
+    char *nomes[] = {"Brasil","Egito","China","Russia","Canada"};
+    char *cores[] = {"Verde","Azul","Verde","Vermelho","Azul"};
+
+    for(int i=0;i<TOTAL_TERRITORIOS;i++){
+
         strcpy(mapa[i].nome, nomes[i]);
-        strcpy(mapa[i].corExercito, cores[i]);
-        mapa[i].numeroTropas = (rand() % 5) + 3; // Inicializa com 3 a 7 tropas
+        strcpy(mapa[i].exercito, cores[i]);
+
+        mapa[i].tropas = (rand()%5)+3; // entre 3 e 7 tropas
     }
 }
 
-void sortearMissao(Missao *m) {
-    m->tipo = rand() % 2;
+
+// sorteia missão
+void gerarMissao(Missao *m){
+
+    m->tipo = rand()%2;
     m->concluida = 0;
-    printf("\n>>> SUA MISSAO: %s\n", 
-           (m->tipo == DESTRUIR_VERDE) ? "Destruir o exercito Verde!" : "Conquistar 3 territorios!");
+
+    printf("\nSUA MISSAO: ");
+
+    if(m->tipo == DESTRUIR_VERDE){
+        printf("Destruir o exercito Verde\n");
+    }else{
+        printf("Conquistar 3 territorios\n");
+    }
+
 }
 
-void exibirMapa(const Territorio *mapa) {
-    printf("\n%-3s | %-15s | %-12s | %-6s\n", "ID", "TERRITORIO", "EXERCITO", "TROPAS");
-    printf("--------------------------------------------------\n");
-    for (int i = 0; i < TOTAL_TERRITORIOS; i++) {
-        printf("%-3d | %-15s | %-12s | %-6d\n", i+1, mapa[i].nome, mapa[i].corExercito, mapa[i].numeroTropas);
+
+// mostra o mapa
+void mostrarMapa(Territorio *mapa){
+
+    printf("\n-------------------------------------\n");
+    printf("ID | Territorio | Exercito | Tropas\n");
+    printf("-------------------------------------\n");
+
+    for(int i=0;i<TOTAL_TERRITORIOS;i++){
+
+        printf("%d | %s | %s | %d\n",
+               i+1,
+               mapa[i].nome,
+               mapa[i].exercito,
+               mapa[i].tropas);
     }
 }
 
-void realizarAtaque(Territorio *ataca, Territorio *defende) {
-    if (ataca->numeroTropas <= 1) return;
 
-    int dAtk = (rand() % 6) + 1;
-    int dDef = (rand() % 6) + 1;
+// sistema de ataque simples
+void atacar(Territorio *a, Territorio *d){
 
-    if (dAtk >= dDef) {
-        defende->numeroTropas--;
-        if (defende->numeroTropas <= 0) {
-            strcpy(defende->corExercito, ataca->corExercito);
-            defende->numeroTropas = 1;
-            ataca->numeroTropas--;
+    if(a->tropas <= 1){
+        printf("Esse territorio nao pode atacar\n");
+        return;
+    }
+
+    int dadoAtk = (rand()%6)+1;
+    int dadoDef = (rand()%6)+1;
+
+    printf("Ataque %d vs Defesa %d\n",dadoAtk,dadoDef);
+
+    if(dadoAtk >= dadoDef){
+
+        d->tropas--;
+
+        if(d->tropas <= 0){
+
+            printf("Territorio conquistado!\n");
+
+            strcpy(d->exercito, a->exercito);
+
+            d->tropas = 1;
+            a->tropas--;
         }
-    } else {
-        ataca->numeroTropas--;
+
+    }else{
+
+        a->tropas--;
+
+        printf("Ataque falhou\n");
     }
 }
 
-int verificarMissao(const Missao *m, const Territorio *mapa) {
-    if (m->tipo == DESTRUIR_VERDE) {
-        for (int i = 0; i < TOTAL_TERRITORIOS; i++) {
-            if (strcmp(mapa[i].corExercito, "Verde") == 0) return 0;
+
+// verifica se missão foi cumprida
+int checarMissao(Missao *m, Territorio *mapa){
+
+    if(m->tipo == DESTRUIR_VERDE){
+
+        for(int i=0;i<TOTAL_TERRITORIOS;i++){
+
+            if(strcmp(mapa[i].exercito,"Verde")==0){
+                return 0;
+            }
         }
+
         return 1;
-    } else {
-        // Exemplo simplificado: Jogador é o exército "Azul" (ID 2 inicial)
-        int contagem = 0;
-        for (int i = 0; i < TOTAL_TERRITORIOS; i++) {
-            if (strcmp(mapa[i].corExercito, "Azul") == 0) contagem++;
-        }
-        return (contagem >= 3);
     }
-}
 
-void limparBuffer() {
-    int c; while ((c = getchar()) != '\n' && c != EOF);
+    else{
+
+        int cont = 0;
+
+        for(int i=0;i<TOTAL_TERRITORIOS;i++){
+
+            if(strcmp(mapa[i].exercito,"Azul")==0){
+                cont++;
+            }
+        }
+
+        if(cont >= 3)
+            return 1;
+        else
+            return 0;
+    }
 }
